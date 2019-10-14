@@ -1,7 +1,7 @@
 import serial
 import re
+import threading
 from enum import Enum
-
 
 
 '''I would never...
@@ -32,10 +32,8 @@ from enum import Enum
 MelfaResponseType = Enum('MelfaResponseType', 'POSITION NONE')
 
 
-
-
 class Position:
-    def __init__(self, x: float, y: float, z: float, A: float, B: float, arg1="R", arg2="A", grip="O"):
+    def __init__(self, x=0, y=0, z=0, A=0, B=0, arg1="R", arg2="A", grip="O"):
         self.x = x
         self.y = y
         self.z = z
@@ -69,6 +67,16 @@ class Position:
         else:
             raise SyntaxError("Illegal position format:"+str(string))
 
+    def is_empty(self):
+        keys = ["x", "y", "z", "A", "B"]
+        positions=[self.__dict__.get(x) for x in keys]
+        all_zero = all(x==0 for x in positions)
+        return all_zero
+
+    def __str__(self):
+        posString = f'{self.x},{self.y},{self.z},{self.A},{self.B},{self.arg1},{self.arg2},{self.grip}'
+        return posString
+
 
 
 
@@ -77,9 +85,11 @@ class RobotMovement:
     """ Responsible for all movement changes and position of the robot"""
     def __init__(self,controller: 'MySerial'):
         self.controller = controller
+        self.gripper_open_port = 1
+        self.gripper_close_port = 0
 
     def validate_limits(self, lower_limit, upper_limit, *x):
-        ok = True
+
         for c in x:
             if c > upper_limit or c < lower_limit:
                 raise ValueError("requested coordinate out of bounds:"+str(c))
@@ -95,6 +105,27 @@ class RobotMovement:
         curr_pos_str = self.controller.send_melfa_msg(wh_msg)
         pos_obj = Position.from_string(curr_pos_str)
         return pos_obj
+
+    def read_position_inx(self, pos_inx) -> Position:
+        wh_msg = MelfaMessage(f'PR {pos_inx}', MelfaResponseType.POSITION)
+        curr_pos_str = self.controller.send_melfa_msg(wh_msg)
+        print(f'read position inx{pos_inx}={curr_pos_str}')
+        return Position.from_string(curr_pos_str)
+
+    def write_pos_to_controller(self,position,pos_inx):
+        wh_msg = MelfaMessage(f'PD {pos_inx},{str(position)}', MelfaResponseType.NONE)
+        self.controller.send_melfa_msg(wh_msg)
+
+    def move_to_position_with_offset(self, base_pos_inx, offset_pos):
+        """ MOVE APPROACH - the controller only accepts using presaved positions
+            could also use """
+        if self.read_position_inx(99).is_empty():
+            self.write_pos_to_controller(offset_pos)
+            ma_msg = MelfaMessage(f'MA {base_pos_inx},{str(offset_pos)}', MelfaResponseType.NONE)
+            self.controller.send_melfa_msg(ma_msg)
+
+
+
 
     def move_straight(self, x=0, y=0, z=0):
         """ DRAW STRAIGHT - Move from current position with linear interpolation"""
@@ -117,6 +148,29 @@ class RobotMovement:
             print("sent melfa message")
         except Exception:
             print("Exception occurred at moveStraight")
+
+    def close_gripper(self):
+        close_duration = 1
+        self._gripper_call(self.gripper_close_port,close_duration)
+
+
+    def open_gripper(self):
+        open_duration = 1
+        self._gripper_call(self.gripper_open_port,open_duration)
+
+    def _gripper_call(self, bit_number, duration):
+        grip_msg = MelfaMessage(f'OB +{bit_number}', MelfaResponseType.NONE)
+        self.controller.send_melfa_msg(grip_msg)
+        try:
+            threading.Timer(duration,self.de_power_gripper).start()
+        except Exception: #if anything goes wrong with turn off delay, turn off directly.
+            self.de_power_gripper()
+
+    def de_power_gripper(self):
+        deactivate_close_msg = MelfaMessage(f'OB -{self.gripper_close_port}', MelfaResponseType.NONE)
+        deactivate_open_msg = MelfaMessage(f'OB -{self.gripper_open_port}', MelfaResponseType.NONE)
+        self.controller.send_melfa_msg(deactivate_close_msg)
+        self.controller.send_melfa_msg(deactivate_open_msg)
 
 
 class MelfaMessage:

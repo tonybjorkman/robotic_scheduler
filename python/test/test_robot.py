@@ -43,6 +43,7 @@ class MockMySerialUp(MySerial):
     or return the MelfaMessage's content-string for assertion"""
     def __init__(self, test_output: str):
         self.test_output=test_output
+        self.sent_msgs = list()
         super().__init__("")
 
     def open_serial(self,comport, w_timeout):
@@ -50,14 +51,19 @@ class MockMySerialUp(MySerial):
 
     def send_melfa_msg(self, msg: MelfaMessage):
         self._set_last_msg(msg)
+        self.sent_msgs.append(msg)
         print("in mock, last msg content:"+self.get_last_msg_content())
         return self.test_output
+
+    def get_sent_msgs(self):
+        return self.sent_msgs
 
     def close(self):
         pass
 
 
 standard_pos = "+500.00,+0.00,-46.30,+0.01,-179.99,R,A,C"
+standard_pos_simple = "500.0,0.0,-46.3,0.01,-179.99,R,A,C"
 
 
 def assert_standard_pos(test: unittest.TestCase, myPos: Position):
@@ -164,6 +170,23 @@ class RobotMovementTest(unittest.TestCase):
         pos_obj = rm.get_position()
         assert_standard_pos(self, pos_obj)
 
+    def test_close_gripper(self):
+        """ Make sure it first activates, and then after a while, sends deactivation of output """
+        mys = MockMySerialUp(standard_pos)
+        rm = RobotMovement(mys)
+        rm.close_gripper()
+        num_msgs_sent = len(mys.get_sent_msgs())
+        self.assertEqual(num_msgs_sent, 1)
+        time.sleep(4) # wait for the timer to send de_activation_msgs
+        num_msgs_sent = len(mys.get_sent_msgs())
+        self.assertEqual(num_msgs_sent, 3)
+        self.assertEqual(mys.get_last_msg_content(), "OB -1")
+
+    def test_read_position_inx(self):
+        mys = MockMySerialUp(standard_pos)
+        rm = RobotMovement(mys)
+        std_pos_obj = rm.read_position_inx(99)
+        self.assertEqual(str(std_pos_obj), standard_pos_simple)
 
 
 class PositionTest(unittest.TestCase):
@@ -174,10 +197,25 @@ class PositionTest(unittest.TestCase):
         self.assertEqual(dict.__len__(), 8)
         self.assertEqual(dict.get("B"), -179.99)
 
+    def test_constructor(self):
+        myPos = Position(y=5)
+        self.assertTrue(myPos.y,5)
+
     def test_classmethod(self):
         myPos = Position.from_string(standard_pos)
         assert_standard_pos(self, myPos)
 
+    def test_is_empty(self):
+        pos = "+500.00,+0.00,+46.30,+0.00,-179.99,R,A,O"
+        pos_obj = Position.from_string(pos)
+        self.assertFalse(pos_obj.is_empty())
+        pos_obj = Position(z=0)
+        self.assertTrue(pos_obj.is_empty())
+
+    def test_to_string(self):
+        pos = "+500.00,+0.00,+46.30,+0.00,-179.99,R,A,O"
+        pos_obj = Position.from_string(pos)
+        self.assertEqual(str(pos_obj),"500.0,0.0,46.3,0.0,-179.99,R,A,O")
 
 
 if __name__ == '__main__':
