@@ -139,15 +139,14 @@ class RobotMovement:
 
 
     def move_tool_straight(self,distance):
-        try:
-            self.validate_limits(-100, 100, distance)
-            print("distance validated")
-            mov_msg = MelfaMessage(f'DS {distance}', MelfaResponseType.NONE)
-            print("built Melfamessage")
-            self.controller.send_melfa_msg(mov_msg)
-            print("sent melfa message")
-        except Exception:
-            print("Exception occurred at moveStraight")
+
+        self.validate_limits(-100, 100, distance)
+        print("distance validated")
+        mov_msg = MelfaMessage(f'DS {distance}', MelfaResponseType.NONE)
+        print("built Melfamessage")
+        self.controller.send_melfa_msg(mov_msg)
+        print("sent melfa message")
+
 
     def close_gripper(self):
         close_duration = 1
