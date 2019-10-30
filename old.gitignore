@@ -1,0 +1,7 @@
+/python/.idea/
+
+__pycache__/
+
+*.tmp
+~*
+
