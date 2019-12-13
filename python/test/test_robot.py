@@ -15,28 +15,7 @@ import time
 #     controller_port.send_melfa_msg(auto_response)
 #     controller_port.close()
 
-"""                                 ,-="'"=.
-                                  .'        `.
-                                 (            `.
-                                  `.            `..
-                                   ,'             .'
-                Add more tests  -- `.            '.
-                                     `-.           `-.
-                                        )             `=-.
-                                      .'              `=-.
-                                    .`               .`-.
-                      _            (                \ `-.
-                   ,'   `.          `.        /`.    \
-                  /        `.         \      |   `.   `.
-                ,'            `.       )    /      \    \
-               /     .'`.        `.    )    |       `.   \
-             ,'    .'    `.         `./     \         `.  \
-           ,'    .'        `.                \          \  \
-         ,'    .'            `.               \          `. \
-       ,'   .'                 `.              )          ) (__.
-     ,'   (                      `.            )          `."'"'
- _.-'    __)                       `.         .  
-`""'""                               `"""""""           """
+
 
 class MockMySerialUp(MySerial):
     """ Can be used for either giving the serial-response used by what you want to test

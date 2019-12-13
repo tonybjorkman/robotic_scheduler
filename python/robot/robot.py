@@ -4,29 +4,7 @@ import threading
 from enum import Enum
 
 
-'''I would never...
-
-                                           $"   *.
-               d$$$$$$$P"                  $    J
-                   ^$.                     4r  "
-                   d"b                    .db
-                  P   $                  e" $
-         ..ec.. ."     *.              zP   $.zec..
-     .^        3*b.     *.           .P" .@"4F      "4
-   ."         d"  ^b.    *c        .$"  d"   $         %
-  /          P      $.    "c      d"   @     3r         3
- 4        .eE........$r===e$$$$eeP    J       *..        b
- $       $$$$$       $   4$$$$$$$     F       d$$$.      4
- $       $$$$$       $   4$$$$$$$     L       *$$$"      4
- 4         "      ""3P ===$$$$$$"     3                  P
-  *                 $       """        b                J
-   ".             .P                    %.             @
-     %.         z*"                      ^%.        .r"
-        "*==*""                             ^"*==*""  '''
-
-
-
-
+# Example position format
 '''+500.00,+0.00,+46.30,+0.00,+179.99,R,A,O'''
 
 MelfaResponseType = Enum('MelfaResponseType', 'POSITION NONE')
@@ -76,9 +54,6 @@ class Position:
     def __str__(self):
         posString = f'{self.x},{self.y},{self.z},{self.A},{self.B},{self.arg1},{self.arg2},{self.grip}'
         return posString
-
-
-
 
 
 class RobotMovement:
@@ -172,6 +147,13 @@ class RobotMovement:
         self.controller.send_melfa_msg(deactivate_open_msg)
 
 
+class Robot:
+
+    def __init__(self, robot_movement: RobotMovement):
+        self.robot_movement = robot_movement
+
+
+
 class MelfaMessage:
 
     def __init__(self, content: str, expected_response: MelfaResponseType):
@@ -234,3 +216,6 @@ class MySerial:
 
     def close(self):
         self.ser.close()
+
+if __name__== "__main__":
+    rm = RobotMovement(MySerial('COM1'))
